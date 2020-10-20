@@ -23,8 +23,7 @@ class OrderingTests(TestCase):
             Author.objects.create()
 ```
 
-- É criada um conjunto de objetos, Article(bold) que possuem um headline e uma data de publicação e Autores que possuem um nome, 
-que serão usados nos testes que vem a seguir
+- É criada um conjunto de objetos, **Article** que possuem um headline e uma data de publicação e **Autores** que possuem um nome, que serão usados nos testes que vem a seguir.
 
 ```python
     def test_default_ordering(self):
@@ -45,8 +44,7 @@ que serão usados nos testes que vem a seguir
         # Getting a single item should work too:
         self.assertEqual(Article.objects.all()[0], self.a4)
 ```
-- Verifica a ordenação padrão. A ordenação por padrão do Article.objects.all() é pela data de publicação e depois pela headline em ordem lexicográfica. Então
-verifica-se se o primeiro da lista é o Article 4 (que possui data de publicação mais recente), e assim por diante.
+- Verifica a ordenação padrão. A ordenação por padrão dos objetos da classe **Article** é pela data de publicação e depois pela headline em ordem lexicográfica. Então verifica-se se o primeiro da lista é o Article 4 (que possui data de publicação mais recente), e assim por diante.
 
 ```python
     def test_default_ordering_override(self):
