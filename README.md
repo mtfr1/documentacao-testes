@@ -23,7 +23,7 @@ class OrderingTests(TestCase):
             Author.objects.create()
 ```
 
-- É criada um conjunto de objetos, **Article** que possuem um headline e uma data de publicação e **Autores** que possuem um nome, que serão usados nos testes que vem a seguir.
+- É criado um conjunto de objetos, **Article** que possuem um headline e uma data de publicação e **Autores** que possuem um nome, que serão usados nos testes que vem a seguir.
 
 ```python
     def test_default_ordering(self):
@@ -44,7 +44,7 @@ class OrderingTests(TestCase):
         # Getting a single item should work too:
         self.assertEqual(Article.objects.all()[0], self.a4)
 ```
-- Verifica a ordenação padrão. A ordenação por padrão dos objetos da classe **Article** é pela data de publicação e depois pela headline em ordem lexicográfica. Então verifica-se se o primeiro da lista é o Article 4 (que possui data de publicação mais recente), e assim por diante.
+- Verifica a ordenação padrão. A ordenação por padrão dos objetos da classe **Article** é pela data de publicação e depois pelo headline em ordem lexicográfica. Então, verifica-se se o primeiro da lista é o Article 4 (que possui data de publicação mais recente), e assim por diante.
 
 ```python
     def test_default_ordering_override(self):
@@ -75,7 +75,7 @@ class OrderingTests(TestCase):
 
     - O primeiro assert sobrescreve a ordenação padrão verificando se os elementos estão, agora, na ordem lexicográfica ao invés de estarem ordem de publicação mais recente.
 
-    - O segundo assert testa a sobrescrição da ordenação padrão e do "sentido" da ordenação, agora a ordem é por data de publicação "ascending" e depois por headline "descending"
+    - O segundo assert testa a sobrescrição da ordenação padrão e do "sentido" da ordenação, agora a ordem é por data de publicação crescente e depois por headline decrescente.
 
 ```python
     def test_order_by_override(self):
@@ -102,9 +102,9 @@ class OrderingTests(TestCase):
             attrgetter("headline")
         )
 ```
-- Verifica a sobrescrição de order_by's seguidos, somente o último order_by deve ter efeito
+- Verifica a sobrescrição de order_by's seguidos, somente o último order_by deve ter efeito.
 
-- O primeiro assert verifica a ordenação por id. No segundo teste, é feita uma chamada de ordenação por id, e depois uma chamada de ordenação por headline descendente, é possivel verificar que a ordenação por id não teve efeito.
+- O primeiro assert verifica a ordenação por id. No segundo teste, é feita uma chamada de ordenação por id, e depois uma chamada de ordenação por headline decrescente, é possivel verificar que a ordenação por id não teve efeito.
 
 ```python
     def test_stop_slicing(self):
@@ -119,7 +119,7 @@ class OrderingTests(TestCase):
             attrgetter("headline")
         )
 ```
-- Verifica se a operação de slicing apenas com o a parte de 'stop' funciona
+- Verifica se a operação de slicing apenas com o 'stop' funciona.
 
 ```python
     def test_stop_start_slicing(self):
@@ -147,17 +147,17 @@ class OrderingTests(TestCase):
             len(list(Article.objects.order_by("?"))), 4
         )
 ```
-- Verifica se a ordenação aletória dos elementos usando order_by("?"), verificando se o tamanho da lista retornado é o igual ao tamanho da lista original (nesse caso 4).
+- Verifica a ordenação aletória dos elementos usando order_by("?"), avaliando se o tamanho da lista retornado é o igual ao tamanho da lista original (nesse caso 4).
 
 ### TESTES DE UNIDADE COM MOCKS
 
-Os mocks se tornaram padrão da biblioteca de testes de unidade (unittest) na versao 3.33 do python. A maioria dos mocks utilizados no código-fonte do Django faz uso da funcionalidade de patch().
+Os mocks se tornaram padrão da biblioteca de testes de unidade (*unittest*) na versao 3.33 do python. A maioria dos mocks utilizados no código-fonte do Django faz uso da funcionalidade de patch().
 
-EXPLICAR PATCH().
+O [patch()](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch) é um decorator que torna simples a substituição temporária de uma classe por um objeto mock.
 
 Código retirado de: https://github.com/django/django/blob/61a0ba43cfd4ff66f51a9d73dcd8ed6f6a6d9915/tests/files/tests.py
 
-Classe para testes relacionados à arquivos
+Dentro de uma classe de testes relacionados à arquivos.
 ```python
 def test_valid_image(self):
         """
@@ -173,4 +173,6 @@ def test_valid_image(self):
                 self.assertEqual(size, (None, None))
 ```
 
-O side_effect declarado dentro do patch é chamado sempre que o mock é chamado. Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct. 
+O side_effect declarado dentro do patch é chamado sempre que o mock é chamado. 
+
+Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct. 
