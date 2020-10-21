@@ -172,3 +172,5 @@ def test_valid_image(self):
                 size = images.get_image_dimensions(fh)
                 self.assertEqual(size, (None, None))
 ```
+
+O side_effect declarado dentro do patch é chamado sempre que o mock é chamado. Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct. 
