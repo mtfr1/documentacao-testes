@@ -157,7 +157,7 @@ O [patch()](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.p
 
 Código retirado de: https://github.com/django/django/blob/61a0ba43cfd4ff66f51a9d73dcd8ed6f6a6d9915/tests/files/tests.py
 
-Dentro de uma classe de testes relacionados à arquivos.
+Classe de testes relacionados à arquivos.
 ```python
 def test_valid_image(self):
         """
@@ -175,4 +175,31 @@ def test_valid_image(self):
 
 O side_effect declarado dentro do patch é chamado sempre que o mock é chamado. 
 
-Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct. 
+Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct.
+
+Código retirado de: https://github.com/django/django/blob/335c9c94acf263901fb023404408880245b0c4b4/tests/backends/mysql/test_creation.py
+
+Classe de teste relacionados à criação de banco de dados MySQL.
+
+```python
+def patch_test_db_creation(self, execute_create_test_db):
+        return mock.patch.object(BaseDatabaseCreation, '_execute_create_test_db', execute_create_test_db)
+
+    @mock.patch('sys.stdout', new_callable=StringIO)
+    @mock.patch('sys.stderr', new_callable=StringIO)
+    def test_create_test_db_database_exists(self, *mocked_objects):
+        # Simulate test database creation raising "database exists"
+        creation = DatabaseCreation(connection)
+        with self.patch_test_db_creation(self._execute_raise_database_exists):
+            with mock.patch('builtins.input', return_value='no'):
+                with self.assertRaises(SystemExit):
+                    # SystemExit is raised if the user answers "no" to the
+                    # prompt asking if it's okay to delete the test database.
+                    creation._create_test_db(verbosity=0, autoclobber=False, keepdb=False)
+            # "Database exists" shouldn't appear when keepdb is on
+            creation._create_test_db(verbosity=0, autoclobber=False, keepdb=True)
+```
+
+A primeira função *patch_test_db_creation*, define a criação de um banco de dados mock que será utilizado nos próximos testes.
+
+Em seguida é feito um mock para simular a resposta de um usuário, nesse caso a resposta seria, de acordo com o return_value definido, 'no'. No comportamento padrão, ao responder 'no' ao prompt durante a remoção de um banco dados deve levantar uma exceção de 'SystemExit'.
