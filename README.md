@@ -185,7 +185,7 @@ def test_valid_image(self):
 
 O side_effect declarado dentro do patch é chamado sempre que o mock é chamado. 
 
-Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct.
+- Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct.
 
 **2 -**
 
@@ -214,7 +214,7 @@ def patch_test_db_creation(self, execute_create_test_db):
 
 A primeira função *patch_test_db_creation*, define a criação de um banco de dados mock que será utilizado nos próximos testes.
 
-Em seguida é feito um mock para simular a resposta de um usuário, nesse caso a resposta seria, de acordo com o return_value definido, 'no'. No comportamento padrão, ao responder 'no' ao prompt durante a remoção de um banco dados deve levantar uma exceção de 'SystemExit'.
+- É criado um mock para simular a resposta de um usuário, nesse caso a resposta seria, de acordo com o return_value definido, 'no'. No comportamento padrão, ao responder 'no' no prompt durante a remoção de um banco dados deve ser levantada uma exceção de 'SystemExit'.
 
 **3 -**
 
@@ -230,4 +230,4 @@ def test_check_sqlite_version(self):
                 self.assertRaisesMessage(ImproperlyConfigured, msg):
             check_sqlite_version()
 ```
-É criado um banco sqlite mock com versão = 3.8.2 (que não é suportada). Então verifica-se se a mensagem de erro de um banco mal configurado é levantada para o usuário.
+- É criado um banco sqlite mock com versão 3.8.2 (que não é suportada). Então verifica-se se a mensagem de erro de um banco mal configurado é levantada para o usuário.
