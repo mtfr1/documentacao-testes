@@ -149,3 +149,26 @@ class OrderingTests(TestCase):
 ```
 - Verifica se a ordenação aletória dos elementos usando order_by("?"), verificando se o tamanho da lista retornado é o igual ao tamanho da lista original (nesse caso 4).
 
+### TESTES DE UNIDADE COM MOCKS
+
+Os mocks se tornaram padrão da biblioteca de testes de unidade (unittest) na versao 3.33 do python. A maioria dos mocks utilizados no código-fonte do Django faz uso da funcionalidade de patch().
+
+EXPLICAR PATCH().
+
+Código retirado de: https://github.com/django/django/blob/61a0ba43cfd4ff66f51a9d73dcd8ed6f6a6d9915/tests/files/tests.py
+
+Classe para testes relacionados à arquivos
+```python
+def test_valid_image(self):
+        """
+        get_image_dimensions() should catch struct.error while feeding the PIL
+        Image parser (#24544).
+        Emulates the Parser feed error. Since the error is raised on every feed
+        attempt, the resulting image size should be invalid: (None, None).
+        """
+        img_path = os.path.join(os.path.dirname(__file__), "test.png")
+        with mock.patch('PIL.ImageFile.Parser.feed', side_effect=struct.error):
+            with open(img_path, 'rb') as fh:
+                size = images.get_image_dimensions(fh)
+                self.assertEqual(size, (None, None))
+```
