@@ -25,6 +25,7 @@ class OrderingTests(TestCase):
 
 - É criado um conjunto de objetos, **Article** que possuem um headline e uma data de publicação e **Autores** que possuem um nome, que serão usados nos testes que vem a seguir.
 
+**1 -**
 ```python
     def test_default_ordering(self):
         """
@@ -46,6 +47,7 @@ class OrderingTests(TestCase):
 ```
 - Verifica a ordenação padrão. A ordenação por padrão dos objetos da classe **Article** é pela data de publicação e depois pelo headline em ordem lexicográfica. Então, verifica-se se o primeiro da lista é o Article 4 (que possui data de publicação mais recente), e assim por diante.
 
+**2 -**
 ```python
     def test_default_ordering_override(self):
         """
@@ -77,6 +79,7 @@ class OrderingTests(TestCase):
 
     - O segundo assert testa a sobrescrição da ordenação padrão e do "sentido" da ordenação, agora a ordem é por data de publicação crescente e depois por headline decrescente.
 
+**3 -**
 ```python
     def test_order_by_override(self):
         """
@@ -106,6 +109,8 @@ class OrderingTests(TestCase):
 
 - O primeiro assert verifica a ordenação por id. No segundo teste, é feita uma chamada de ordenação por id, e depois uma chamada de ordenação por headline decrescente, é possivel verificar que a ordenação por id não teve efeito.
 
+
+**4 -**
 ```python
     def test_stop_slicing(self):
         """
@@ -121,6 +126,7 @@ class OrderingTests(TestCase):
 ```
 - Verifica se a operação de slicing apenas com o 'stop' funciona.
 
+**5 -**
 ```python
     def test_stop_start_slicing(self):
         """
@@ -138,6 +144,7 @@ class OrderingTests(TestCase):
 
 - Similar ao teste anterior, mas agora verificando se ambas as operações de 'stop' e 'start' do slicing funcionam dando offset na lista de resultado.
 
+**6 -**
 ```python
     def test_random_ordering(self):
         """
@@ -154,6 +161,9 @@ class OrderingTests(TestCase):
 Os mocks se tornaram padrão da biblioteca de testes de unidade (*unittest*) na versao 3.33 do python. A maioria dos mocks utilizados no código-fonte do Django faz uso da funcionalidade de patch().
 
 O [patch()](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch) é um decorator que torna simples a substituição temporária de uma classe por um objeto mock.
+
+
+**1 -**
 
 Código retirado de: https://github.com/django/django/blob/61a0ba43cfd4ff66f51a9d73dcd8ed6f6a6d9915/tests/files/tests.py
 
@@ -177,9 +187,11 @@ O side_effect declarado dentro do patch é chamado sempre que o mock é chamado.
 
 Nesse caso está sendo emulado um erro durante o parsing de um arquivo de imagem, assim o tamanho da imagem deve ser inválido (None, None). O erro vai ser gerado em todas as chamadas porque o side_effect do mock é igual a um erro de struct.
 
+**2 -**
+
 Código retirado de: https://github.com/django/django/blob/335c9c94acf263901fb023404408880245b0c4b4/tests/backends/mysql/test_creation.py
 
-Classe de teste relacionados à criação de banco de dados MySQL.
+Classe de testes relacionados à criação de banco de dados MySQL.
 
 ```python
 def patch_test_db_creation(self, execute_create_test_db):
@@ -203,3 +215,19 @@ def patch_test_db_creation(self, execute_create_test_db):
 A primeira função *patch_test_db_creation*, define a criação de um banco de dados mock que será utilizado nos próximos testes.
 
 Em seguida é feito um mock para simular a resposta de um usuário, nesse caso a resposta seria, de acordo com o return_value definido, 'no'. No comportamento padrão, ao responder 'no' ao prompt durante a remoção de um banco dados deve levantar uma exceção de 'SystemExit'.
+
+**3 -**
+
+Código retirado de: https://github.com/django/django/blob/3b8857b51ab4ab2ef19bcfc665a427e19a7aabc0/tests/backends/sqlite/tests.py
+
+Classe de testes relacionados ao SQLite.
+
+```python
+def test_check_sqlite_version(self):
+        msg = 'SQLite 3.8.3 or later is required (found 3.8.2).'
+        with mock.patch.object(dbapi2, 'sqlite_version_info', (3, 8, 2)), \
+                mock.patch.object(dbapi2, 'sqlite_version', '3.8.2'), \
+                self.assertRaisesMessage(ImproperlyConfigured, msg):
+            check_sqlite_version()
+```
+É criado um banco sqlite mock com versão = 3.8.2 (que não é suportada). Então verifica-se se a mensagem de erro de um banco mal configurado é levantada para o usuário.
