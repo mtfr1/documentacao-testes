@@ -231,3 +231,148 @@ def test_check_sqlite_version(self):
             check_sqlite_version()
 ```
 - É criado um banco sqlite mock com versão 3.8.2 (que não é suportada). Então verifica-se se a mensagem de erro de um banco mal configurado é levantada para o usuário.
+
+
+## Álvaro Rodrigues
+
+### TESTES DE UNIDADE
+
+Códigos retirados de [tests/admin_registration/models.py](https://github.com/django/django/blob/master/tests/admin_registration/models.py), [tests/admin_registration/tests.py](https://github.com/django/django/blob/master/tests/admin_registration/tests.py) e [contrib/admin/sites.py](https://github.com/django/django/blob/master/django/contrib/admin/sites.py)
+
+```python
+# file models.py
+class Person(models.Model):
+    name = models.CharField(max_length=200)
+
+class Traveler(Person):
+    pass
+
+class Location(models.Model):
+    class Meta:
+        abstract = True
+
+class Place(Location):
+    name = models.CharField(max_length=200)
+
+class NameAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    save_on_top = True
+
+class CustomSite(admin.AdminSite):
+    pass
+
+# file tests.py
+class TestRegistration(SimpleTestCase):
+    def setUp(self):
+        self.site = admin.AdminSite()
+
+    # tests
+    # ...
+```
+- São criados diferentes modelos para que possam ser registrados pelo admin. Em sequência é definido uma classe de testes para testar o registro.
+
+**1 -**
+```python
+def test_bare_registration(self):
+    self.site.register(Person)
+    self.assertIsInstance(self.site._registry[Person], admin.ModelAdmin)
+```
+- Nesse teste nenhum modelo é passado como parâmetro durante o registro, então é verificado se **Person** é uma instância de **ModelAdmin**, uma vez que foi registrada por um admin e portanto também devera ser um admim.
+
+**2 -**
+```python
+def test_registration_with_model_admin(self):
+    self.site.register(Person, NameAdmin)
+    self.assertIsInstance(self.site._registry[Person], NameAdmin)
+```
+- Nesse teste é passado um modelo como parâmetro durante o registro. **NameAdmin** é uma classe que extende a classe **admim.ModelAdmin** e portanto **Person** também será considerada um admin. O teste então verifca se **Person** é uma instância de **NameAdmin**.
+
+**3 -**
+```python
+# file sites.py
+class AlreadyRegistered(Exception):
+    pass
+
+def register(self, model_or_iterable, admin_class=None, **options):
+    # ...
+    for model in model_or_iterable:
+        # ...
+
+        if model in self._registry:
+            registered_admin = str(self._registry[model])
+            msg = 'The model %s is already registered ' % model.__name__
+            if registered_admin.endswith('.ModelAdmin'):
+                # Most likely registered without a ModelAdmin subclass.
+                msg += 'in app %r.' % re.sub(r'\.ModelAdmin$', '', registered_admin)
+            else:
+                msg += 'with %r.' % registered_admin
+            raise AlreadyRegistered(msg)
+    # ...
+
+# file tests.py
+def test_prevent_double_registration(self):
+    self.site.register(Person)
+    msg = "The model Person is already registered in app 'admin_registration'."
+    with self.assertRaisesMessage(admin.sites.AlreadyRegistered, msg):
+        self.site.register(Person)
+```
+- Esse teste verifica se uma exceção será disparada ao tentar registrar uma instância previamente resgistrada. Nesse caso **Person** será registrada com o modelo **ModelAdmin** e portanto a condição do segundo **if** da função **register** será verdadeira. 
+
+**4 -**
+```python
+def test_prevent_double_registration_for_custom_admin(self):
+    class PersonAdmin(admin.ModelAdmin):
+        pass
+
+    self.site.register(Person, PersonAdmin)
+    msg = "The model Person is already registered with 'admin_registration.PersonAdmin'."
+    with self.assertRaisesMessage(admin.sites.AlreadyRegistered, msg):
+        self.site.register(Person, PersonAdmin)
+```
+- Esse teste é similar ao anterior, entretanto é criado um modelo que extende o modelo **admin.ModelAdmin**, modelo esse que é usado durante o registro de **Person**. É verificado então, se ao registrar novamente **Person** utilizando o modelo customizado de admin se a exceção será disparada.
+
+**5 -**
+```python
+# file sites.py
+def register(self, model_or_iterable, admin_class=None, **options):
+    # ...
+    # If we got **options then dynamically construct a subclass of
+    # admin_class with those **options.
+    if options:
+
+        options['__module__'] = __name__
+        admin_class = type("%sAdmin" % model.__name__, (admin_class,), options)
+
+    self._registry[model] = admin_class(model, self)
+
+# file tests.py
+def test_registration_with_star_star_options(self):
+    self.site.register(Person, search_fields=['name'])
+    self.assertEqual(self.site._registry[Person].search_fields, ['name'])
+```
+- Python e outras linguagens como Ruby e Scala tem suporte nativo a *keyword arguments*, que são argumentos extras para uma função. Em Pyhthon são precedidos por __**__ e comumente definidos como __**kwargs__. A função **register** possuir um *keyword argument* __**options__, e o teste em questão testa se esse argumento foi corretamente salvo após o regsitro.
+
+**6 -**
+```python
+# file sites.py
+def register(self, model_or_iterable, admin_class=None, **options):
+    # ...
+    for model in model_or_iterable:
+        if model._meta.abstract:
+            raise ImproperlyConfigured(
+                'The model %s is abstract, so it cannot be registered with admin.' % model.__name__
+            )
+    # ...
+
+# file models.py
+class Location(models.Model):
+    class Meta:
+        abstract = True
+
+# file tests.py
+def test_abstract_model(self):
+    msg = 'The model Location is abstract, so it cannot be registered with admin.'
+    with self.assertRaisesMessage(ImproperlyConfigured, msg):
+        self.site.register(Location)
+```
+- O modelo **Location** é um modelo abstrato e portanto não pode ser registrado como admin. Na função **register** essa condição é verificada e o teste em questão está testando se a exceção será disparada corretamente.
