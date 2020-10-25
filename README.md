@@ -376,3 +376,196 @@ def test_abstract_model(self):
         self.site.register(Location)
 ```
 - O modelo **Location** é um modelo abstrato e portanto não pode ser registrado como admin. Na função **register** essa condição é verificada e o teste em questão está testando se a exceção será disparada corretamente.
+
+### TESTES DE UNIDADE COM MOCKS
+
+Os testes a seguir irão testar funcionalidades da classe **ModelAdmin**, uma classe que encapsula todas as opções e funcionalidades de admin para um dado modelo. Os testes ultilzam mocks manuais implementados pelos próprios desenvolvedores do Django. Códigos retirados de [django/tests/modeladmin/tests.py](https://github.com/django/django/blob/master/tests/modeladmin/tests.py), [django/tests/modeladmin/models.py](https://github.com/django/django/blob/master/tests/modeladmin/models.py), [django/django/contrib/admin/utils.py](https://github.com/django/django/blob/master/django/contrib/admin/utils.py) e [django/django/contrib/admin/options.py](https://github.com/django/django/blob/master/django/contrib/admin/options.py).
+
+```python
+# file models.py
+class Band(models.Model):
+    name = models.CharField(max_length=100)
+    bio = models.TextField()
+    sign_date = models.DateField()
+
+    class Meta:
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name
+
+
+class Song(models.Model):
+    name = models.CharField(max_length=100)
+    band = models.ForeignKey(Band, models.CASCADE)
+    featuring = models.ManyToManyField(Band, related_name='featured')
+
+    def __str__(self):
+        return self.name
+
+
+class Concert(models.Model):
+    main_band = models.ForeignKey(Band, models.CASCADE, related_name='main_concerts')
+    opening_band = models.ForeignKey(Band, models.CASCADE, related_name='opening_concerts', blank=True)
+    day = models.CharField(max_length=3, choices=((1, 'Fri'), (2, 'Sat')))
+    transport = models.CharField(max_length=100, choices=(
+        (1, 'Plane'),
+        (2, 'Train'),
+        (3, 'Bus')
+    ), blank=True)
+
+# file tests.py
+class MockRequest:
+    pass
+
+class MockSuperUser:
+    def has_perm(self, perm, obj=None):
+        return True
+
+class ModelAdminTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.band = Band.objects.create(
+            name='The Doors',
+            bio='',
+            sign_date=date(1965, 1, 1),
+        )
+
+    def setUp(self):
+        self.site = AdminSite()
+
+    # tests
+    # ...
+```
+- Inicialmente é criado um mock que emula uma request de um usuário além de um mock que emula um usuário com todas as permissões. A classe de testes **ModelAdminTests** contém testes que utilizam modelos criados exclusivamente para os testes, definidos no arquivo [models.py](https://github.com/django/django/blob/master/tests/modeladmin/models.py).
+
+**1 -**
+```python
+# file utils.py
+def get_deleted_objects(objs, request, admin_site):
+    # ...
+    perms_needed = set()
+
+    def format_callback(obj):
+        # ...
+        if has_admin:
+            if not admin_site._registry[model].has_delete_permission(request, obj):
+                perms_needed.add(opts.verbose_name)
+    # ...
+
+# file tests.py
+def test_get_deleted_objects(self):
+    mock_request = MockRequest()
+    mock_request.user = User.objects.create_superuser(username='bob', email='bob@test.com', password='test')
+    self.site.register(Band, ModelAdmin)
+    ma = self.site._registry[Band]
+    deletable_objects, model_count, perms_needed, protected = ma.get_deleted_objects([self.band], request)
+    self.assertEqual(deletable_objects, ['Band: The Doors'])
+    self.assertEqual(model_count, {'bands': 1})
+    self.assertEqual(perms_needed, set())
+    self.assertEqual(protected, [])
+```
+- O teste emula uma resquest usando o mock e em seguida seta um super usuário para a request. Em seguida é registrado um modelo **Band** que receberá as funcionalidades de um modelo **ModelAdmin**. É testado então se o método **get_deleted_objects**, atrelado ao objeto **Band**, retorna a saída correta em relação ao permissionamento do usuário. Como o usuário em questão é um super usuário então o objeto previamente definido de **Band** é deletável e nenhuma permissão a mais é necessária.
+
+---
+
+Os testes a seguir dizem respeito as permissões do **ModelAdmin**. Alguns mocks foram criados para simular diferentes permissões do usuário.
+
+```python
+class ModelAdminPermissionTests(SimpleTestCase):
+
+    class MockUser:
+        def has_module_perms(self, app_label):
+            return app_label == 'modeladmin'
+
+    class MockViewUser(MockUser):
+        def has_perm(self, perm, obj=None):
+            return perm == 'modeladmin.view_band'
+
+    class MockAddUser(MockUser):
+        def has_perm(self, perm, obj=None):
+            return perm == 'modeladmin.add_band'
+
+    class MockChangeUser(MockUser):
+        def has_perm(self, perm, obj=None):
+            return perm == 'modeladmin.change_band'
+
+    class MockDeleteUser(MockUser):
+        def has_perm(self, perm, obj=None):
+            return perm == 'modeladmin.delete_band'
+
+    # tests
+    # ...
+```
+
+**2 -**
+```python
+# file options.py
+def has_view_permission(self, request, obj=None):
+    opts = self.opts
+    codename_view = get_permission_codename('view', opts)
+    codename_change = get_permission_codename('change', opts)
+    return (
+        request.user.has_perm('%s.%s' % (opts.app_label, codename_view)) or
+        request.user.has_perm('%s.%s' % (opts.app_label, codename_change))
+    )
+
+# file tests.py
+def test_has_view_permission(self):
+    """
+    has_view_permission() returns True for users who can view objects and
+    False for users who can't.
+    """
+    ma = ModelAdmin(Band, AdminSite())
+    request = MockRequest()
+    request.user = self.MockViewUser()
+    self.assertIs(ma.has_view_permission(request), True)
+    request.user = self.MockAddUser()
+    self.assertIs(ma.has_view_permission(request), False)
+    request.user = self.MockChangeUser()
+    self.assertIs(ma.has_view_permission(request), True)
+    request.user = self.MockDeleteUser()
+    self.assertIs(ma.has_view_permission(request), False)
+```
+- O teste acima é usado para verifcar se as permissões de visualização de um objeto estão corretamente definidas dependendo do usuário. Cada mock de usuário atribuido a request possui uma permissão diferente, e a função **has_view_permission** retorna True apenas para usuários que possuem permissões de **view** e **change**, e isso deve ser garantido nos asserts.
+
+**3 -**
+```python
+# file options.py
+def get_inline_instances(self, request, obj=None):
+    inline_instances = []
+    for inline_class in self.get_inlines(request, obj):
+        inline = inline_class(self.model, self.admin_site)
+        if request:
+            if not (inline.has_view_or_change_permission(request, obj) or
+                    inline.has_add_permission(request, obj) or
+                    inline.has_delete_permission(request, obj)):
+                continue
+            if not inline.has_add_permission(request, obj):
+                inline.max_num = 0
+        inline_instances.append(inline)
+
+    return inline_instances
+
+# file tests.py
+def test_inline_has_add_permission_uses_obj(self):
+    class ConcertInline(TabularInline):
+        model = Concert
+
+        def has_add_permission(self, request, obj):
+            return bool(obj)
+
+    class BandAdmin(ModelAdmin):
+        inlines = [ConcertInline]
+
+    ma = BandAdmin(Band, AdminSite())
+    request = MockRequest()
+    request.user = self.MockAddUser()
+    self.assertEqual(ma.get_inline_instances(request), [])
+    band = Band(name='The Doors', bio='', sign_date=date(1965, 1, 1))
+    inline_instances = ma.get_inline_instances(request, band)
+    self.assertEqual(len(inline_instances), 1)
+    self.assertIsInstance(inline_instances[0], ConcertInline)
+```
+- O teste em questão cria um modelo inline **ConcertInline** que extende a classe **TabularInline** ao invés de extender a classe **models.Model**. Em uma instância inline é possível setar o modelo a ser utilizado, **Concert** no caso, e na mesma classe já definir suas permissões. É nessesário testar se um usuário com permissões de **add** consegue adicionar modelos na instância. Quando nenhum objeto é passado ao método **get_inline_instances** ele então deve retornar lista vazia. Já quando um obeto é passado então é retornado uma lista de tamanho 1, e como o moodelo em questão é um **BandAdmin** que possui um inline definino como **ConcertInline**, então o último assert garante que a instância retornada na posição 0 da lista é um **ConcertInline**.
